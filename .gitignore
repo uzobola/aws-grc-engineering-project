@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# AWS credentials and config
+.aws/
+credentials
+config
+
+# Output files that may contain account/resource data
+evidence-collector/output/
+*.log
+
+# IDE
+.vscode/
+.cursor/

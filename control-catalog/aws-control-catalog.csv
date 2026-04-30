@@ -1,0 +1,9 @@
+control_id,control_domain,control_name,aws_service,control_objective,test_method,evidence_type,risk_rating
+IAM-001,Identity and Access Management,Root MFA Enabled,IAM,Ensure the AWS root user is protected with multi-factor authentication,boto3 iam.get_account_summary,API response,Critical
+IAM-002,Identity and Access Management,No Active Root Access Keys,IAM,Ensure the AWS root user does not have active access keys,boto3 iam.get_account_summary,API response,Critical
+IAM-003,Identity and Access Management,IAM Users Have MFA,IAM,Ensure IAM users are protected with MFA,boto3 iam.list_users and iam.list_mfa_devices,API response,High
+LOG-001,Logging and Monitoring,CloudTrail Enabled,CloudTrail,Ensure account activity is logged for audit and investigation,boto3 cloudtrail.describe_trails,API response,Critical
+S3-001,Data Protection,S3 Public Access Block Enabled,S3,Ensure S3 buckets are not publicly exposed,boto3 s3control and s3 public access block checks,API response,Critical
+S3-002,Data Protection,S3 Default Encryption Enabled,S3,Ensure S3 buckets encrypt objects at rest,boto3 s3.get_bucket_encryption,API response,High
+DET-001,Threat Detection,GuardDuty Enabled,GuardDuty,Ensure threat detection is enabled in AWS accounts,boto3 guardduty.list_detectors,API response,High
+SEC-001,Security Posture Management,Security Hub Enabled,Security Hub,Ensure centralized security posture management is enabled,boto3 securityhub.describe_hub,API response,Medium
