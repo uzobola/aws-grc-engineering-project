@@ -62,6 +62,7 @@ aws-grc-engineering-project/
 ├── risk-scoring/
 ├── .gitignore
 └── README.md
+```
 
 ## Planned Capabilities
 
