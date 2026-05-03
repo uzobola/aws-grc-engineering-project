@@ -1,0 +1,8 @@
+aws:
+  profile: grc-engineer
+  region: us-east-1
+
+output:
+  directory: output
+  json_file: evidence-results.json
+  csv_file: evidence-results.csv

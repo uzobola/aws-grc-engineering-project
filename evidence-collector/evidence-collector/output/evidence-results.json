@@ -1,0 +1,30 @@
+[
+  {
+    "control_id": "IAM-001",
+    "control_name": "Root MFA Enabled",
+    "control_domain": "Identity and Access Management",
+    "aws_service": "IAM",
+    "status": "PASS",
+    "risk_rating": "Critical",
+    "evidence_source": "iam.get_account_summary",
+    "evidence": {
+      "AccountMFAEnabled": 1
+    },
+    "timestamp": "2026-05-03T05:12:33.232984+00:00",
+    "remediation": "Enable MFA for the AWS account root user."
+  },
+  {
+    "control_id": "IAM-002",
+    "control_name": "No Active Root Access Keys",
+    "control_domain": "Identity and Access Management",
+    "aws_service": "IAM",
+    "status": "PASS",
+    "risk_rating": "Critical",
+    "evidence_source": "iam.get_account_summary",
+    "evidence": {
+      "AccountAccessKeysPresent": 0
+    },
+    "timestamp": "2026-05-03T05:12:33.632654+00:00",
+    "remediation": "Delete active access keys for the AWS account root user."
+  }
+]
