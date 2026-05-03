@@ -20,6 +20,7 @@ This project implements a lightweight AWS GRC Engineering workflow that:
 - Scores findings by risk severity
 - Produces audit-ready evidence outputs
 - Provides remediation guidance for failed controls
+- Implements a “controls as code” approach so GRC requirements are tested and evidenced automatically rather than manually.
 
 ## Control Domains
 
@@ -63,6 +64,12 @@ aws-grc-engineering-project/
 ├── .gitignore
 └── README.md
 ```
+
+## Tech Stack
+
+- AWS: IAM, S3, CloudTrail, GuardDuty, Security Hub (planned).
+- Language: Python (boto3 for AWS API integration).
+- Outputs: JSON/CSV evidence artifacts and human‑readable report templates.
 
 ## Planned Capabilities
 
