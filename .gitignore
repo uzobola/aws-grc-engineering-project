@@ -22,3 +22,8 @@ evidence-collector/**/output/
 # IDE
 .vscode/
 .cursor/
+
+
+# Local scratch/practice files
+local-scratch/
+scripts/iam_users_report*.txt
