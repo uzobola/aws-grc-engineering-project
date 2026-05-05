@@ -17,6 +17,7 @@ config
 # Output files that may contain account/resource data
 evidence-collector/output/
 *.log
+evidence-collector/**/output/
 
 # IDE
 .vscode/

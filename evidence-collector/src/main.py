@@ -1,9 +1,11 @@
 from pathlib import Path
 import yaml
 
+
 from checks.iam_checks import (
     check_root_mfa_enabled,
-    check_no_active_root_access_keys
+    check_no_active_root_access_keys,
+    check_iam_users_have_mfa
 )
 from evidence.evidence_writer import write_json, write_csv
 from utils.aws_session import create_aws_session
@@ -37,9 +39,10 @@ def main() -> None:
     )
 
     results = [
-        check_root_mfa_enabled(session),
-        check_no_active_root_access_keys(session)
-    ]
+    check_root_mfa_enabled(session),
+    check_no_active_root_access_keys(session),
+    check_iam_users_have_mfa(session)
+]
 
     write_json(results, json_output_path)
     write_csv(results, csv_output_path)
