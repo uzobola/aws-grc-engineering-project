@@ -11,6 +11,7 @@ from checks.s3_checks import (
     check_s3_public_access_block_enabled,
     check_s3_default_encryption_enabled
 )
+from checks.cloudtrail_checks import check_cloudtrail_enabled
 from evidence.evidence_writer import write_json, write_csv
 from utils.aws_session import create_aws_session
 
@@ -47,7 +48,8 @@ def main() -> None:
     check_no_active_root_access_keys(session),
     check_iam_users_have_mfa(session),
     check_s3_public_access_block_enabled(session),
-    check_s3_default_encryption_enabled(session)
+    check_s3_default_encryption_enabled(session),
+    check_cloudtrail_enabled(session)
 ]
 
     write_json(results, json_output_path)
