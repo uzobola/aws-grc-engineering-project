@@ -20,7 +20,7 @@ This project implements a lightweight AWS GRC Engineering workflow that:
 - Scores findings by risk severity
 - Produces audit-ready evidence outputs
 - Provides remediation guidance for failed controls
-- Implements a “controls as code” approach so GRC requirements are tested and evidenced automatically rather than manually.
+- Implements a controls-as-code approach so GRC requirements are tested and evidenced automatically rather than manually
 
 ## Control Domains
 
@@ -41,16 +41,21 @@ This project includes control mapping examples for:
 - ISO/IEC 27001
 - PCI DSS
 
-## Current Project Status
+## MVP Status
 
-Phase 1 is focused on building the foundational GRC artifacts:
+This project now includes:
 
 - AWS control catalog
-- Framework mapping
-- Control testing methodology
-- Evidence collector structure
+- Compliance framework mapping
+- Automated evidence collection using Python and boto3
+- IAM, S3, CloudTrail, GuardDuty, and Security Hub control checks
+- JSON and CSV evidence output
 - Risk scoring model
-- Remediation workflow templates
+- Executive summary template
+- Audit evidence report template
+- Remediation playbooks
+- Exception register template
+- Secure S3 evidence bucket automation script
 
 ## Repository Structure
 
@@ -61,27 +66,130 @@ aws-grc-engineering-project/
 ├── remediation/
 ├── reports/
 ├── risk-scoring/
+├── scripts/
 ├── .gitignore
 └── README.md
 ```
 
 ## Tech Stack
 
-- AWS: IAM, S3, CloudTrail, GuardDuty, Security Hub (planned).
-- Language: Python (boto3 for AWS API integration).
-- Outputs: JSON/CSV evidence artifacts and human‑readable report templates.
+- AWS: IAM, S3, CloudTrail, GuardDuty, Security Hub
+- Language: Python
+- SDK: boto3
+- Evidence Outputs: JSON and CSV
+- Reporting: Markdown templates
+- Automation: Bash scripts
+- Version Control: Git and GitHub
 
-## Planned Capabilities
+## Implemented Controls
 
-- Automated IAM evidence collection
-- S3 security control validation
-- CloudTrail logging validation
-- GuardDuty and Security Hub posture checks
-- JSON/CSV evidence output
+| Control ID | Control Name | Domain | AWS Service | Status |
+|---|---|---|---|---|
+| IAM-001 | Root MFA Enabled | Identity and Access Management | IAM | Implemented |
+| IAM-002 | No Active Root Access Keys | Identity and Access Management | IAM | Implemented |
+| IAM-003 | IAM Users Have MFA | Identity and Access Management | IAM | Implemented |
+| S3-001 | S3 Public Access Block Enabled | Data Protection | S3 | Implemented |
+| S3-002 | S3 Default Encryption Enabled | Data Protection | S3 | Implemented |
+| LOG-001 | CloudTrail Enabled | Logging and Monitoring | CloudTrail | Implemented |
+| LOG-002 | CloudTrail Log File Validation Enabled | Logging and Monitoring | CloudTrail | Implemented |
+| DET-001 | GuardDuty Enabled | Threat Detection | GuardDuty | Implemented |
+| SEC-001 | Security Hub Enabled | Security Posture Management | Security Hub | Implemented |
+
+## How to Run the Evidence Collector
+
+From the project root:
+
+```bash
+cd evidence-collector
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python src/main.py
+```
+
+The collector generates:
+
+```text
+output/evidence-results.json
+output/evidence-results.csv
+```
+
+Generated evidence output is excluded from Git because it may contain AWS account-specific data.
+
+## How to Run Risk Scoring
+
+After running the evidence collector:
+
+```bash
+cd ../risk-scoring
+python risk_score.py
+```
+
+The risk scoring module generates:
+
+```text
+risk-scoring/output/risk-summary.json
+```
+
+## Sample MVP Result
+
+Example control posture from the MVP environment:
+
+| Metric | Value |
+|---|---:|
+| Total Controls Evaluated | 9 |
+| Passed Controls | 6 |
+| Failed Controls | 3 |
+| Error Controls | 0 |
+| Compliance Score | 66.67% |
+
+Example failed controls:
+
+| Control ID | Control Name | Risk |
+|---|---|---|
+| IAM-003 | IAM Users Have MFA | High |
+| DET-001 | GuardDuty Enabled | High |
+| SEC-001 | Security Hub Enabled | Medium |
+
+## GRC Engineering Concepts Demonstrated
+
+This project demonstrates:
+
+- Continuous control monitoring
+- Automated evidence collection
+- Control-to-framework mapping
 - Risk-based finding prioritization
-- Audit-ready reporting templates
-- Remediation and exception tracking
+- Audit-ready reporting
+- Remediation playbooks
+- Exception tracking
+- Secure evidence storage design
+- Separation of generated evidence from source code
+
+## Security and Evidence Handling
+
+Generated evidence files may include AWS account IDs, IAM usernames, bucket names, ARNs, and configuration details.
+
+For that reason:
+
+- Evidence output is excluded from version control
+- Evidence should be stored in a secured S3 evidence bucket
+- Access should follow least privilege
+- Evidence should be encrypted at rest
+- Evidence access should be logged when required by audit scope
+
+## Future Enhancements
+
+- AWS Config integration
+- Security Hub findings ingestion
+- Multi-account support using AWS Organizations
+- Automated remediation with Lambda
+- HTML or dashboard reporting
+- Jira or ServiceNow ticket generation
+- IAM Access Analyzer evidence checks
+- KMS key governance checks
 
 ## Author
 
-Built by Uzo Bolarinwa as part of a hands-on AWS GRC Engineering portfolio focused on cloud security, compliance automation, and security controls.
+## Author
+
+Created by Uzo Bolarinwa as a practical AWS GRC Engineering implementation focused on automated control validation, compliance evidence collection, risk-based reporting, and cloud security governance.
