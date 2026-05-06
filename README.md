@@ -41,7 +41,9 @@ This project includes control mapping examples for:
 - ISO/IEC 27001
 - PCI DSS
 
-## MVP Status
+## Project Status
+
+Core implementation completed.
 
 This project now includes:
 
@@ -131,9 +133,9 @@ The risk scoring module generates:
 risk-scoring/output/risk-summary.json
 ```
 
-## Sample MVP Result
+## Sample Assessment Result
 
-Example control posture from the MVP environment:
+Example control posture from the assessment environment:
 
 | Metric | Value |
 |---|---:|
