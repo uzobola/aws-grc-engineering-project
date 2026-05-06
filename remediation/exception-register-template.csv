@@ -1,0 +1,3 @@
+exception_id,control_id,control_name,risk_rating,exception_reason,business_justification,owner,approval_status,approved_by,approval_date,expiration_date,compensating_controls,review_frequency
+EX-001,IAM-003,IAM Users Have MFA,High,Temporary exception for break-glass user,Break-glass access required during migration to federated identity,Security Owner,Pending,,,,Restricted permissions and CloudTrail monitoring,Monthly
+EX-002,DET-001,GuardDuty Enabled,High,Service not enabled in sandbox account,Temporary cost control during development phase,Cloud Security Owner,Pending,,,,Manual CloudTrail review during testing,Monthly

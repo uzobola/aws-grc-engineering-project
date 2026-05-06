@@ -32,5 +32,5 @@ The risk scoring script calculates:
 
 The compliance score is calculated as:
 
-```text
+```text 
 passed_controls / total_controls_evaluated * 100
