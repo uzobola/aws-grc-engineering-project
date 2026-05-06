@@ -243,6 +243,18 @@ For that reason:
 - IAM Access Analyzer evidence checks
 - KMS key governance checks
 
+## Sample Screenshots
+
+The screenshots below show the evidence collector and risk scoring module running against a dedicated AWS assessment account. Sensitive account-specific evidence is excluded from the repository; only sanitized summary output is shown.
+
+### Evidence Collector Output
+
+![Evidence Collector Output](samples/screenshots/evidence-collector-terminal.png)
+
+### Risk Scoring Output
+
+![Risk Scoring Output](samples/screenshots/risk-scoring-terminal.png)
+
 ## Author
 
 Created by Uzo Bolarinwa as a practical AWS GRC Engineering implementation focused on automated control validation, compliance evidence collection, risk-based reporting, and cloud security governance.
