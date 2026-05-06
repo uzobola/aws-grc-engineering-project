@@ -1,4 +1,12 @@
-# AWS GRC Engineering Project
+# AWS Continuous Compliance Automation Framework
+
+<h1 align="center">AWS Continuous Compliance Automation Framework</h1>
+
+<p align="center">
+  <img src="assets/aws-continuous-compliance-framework.png" alt="AWS Continuous Compliance Automation Framework" width="900">
+</p>
+
+An AWS GRC Engineering implementation for automated control validation, compliance evidence collection, risk-based remediation prioritization, and audit-ready reporting.
 
 ## Overview
 
