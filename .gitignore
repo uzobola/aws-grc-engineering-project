@@ -27,6 +27,7 @@ evidence-collector/**/output/
 # Local scratch/practice files
 local-scratch/
 scripts/iam_users_report*.txt
+scripts/create-evidence-bucket.sh
 
 # Generated risk reports
 risk-scoring/output/

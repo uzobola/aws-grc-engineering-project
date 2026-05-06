@@ -6,6 +6,16 @@ This project demonstrates an engineering-driven approach to Governance, Risk, an
 
 The goal is to show how AWS security telemetry can be transformed into continuous compliance evidence and actionable risk insight.
 
+
+## Why This Matters
+
+Traditional compliance evidence collection often relies on screenshots, manual reviews, spreadsheets, and point-in-time audits. This approach does not scale well in dynamic cloud environments where resources and configurations can change quickly.
+
+This project demonstrates how AWS security controls can be validated through APIs, converted into structured evidence, mapped to compliance frameworks, scored by risk, and reported in audit-ready formats.
+
+The result is a repeatable GRC Engineering workflow that supports continuous assurance instead of manual audit preparation.
+
+
 ## Business Problem
 
 Cloud environments change quickly, but many compliance programs still rely on manual evidence collection, screenshots, spreadsheets, and point-in-time audits. This creates delays, inconsistent evidence, limited visibility, and increased risk of control drift.
@@ -64,11 +74,29 @@ This project now includes:
 ```text
 aws-grc-engineering-project/
 ├── control-catalog/
+│   ├── aws-control-catalog.csv
+│   ├── framework-mapping.csv
+│   └── control-testing-methodology.md
 ├── evidence-collector/
+│   ├── config.yaml
+│   ├── requirements.txt
+│   └── src/
+│       ├── main.py
+│       ├── checks/
+│       ├── evidence/
+│       └── utils/
 ├── remediation/
+│   ├── remediation-playbooks.md
+│   └── exception-register-template.csv
 ├── reports/
+│   ├── executive-summary-template.md
+│   └── audit-evidence-report-template.md
 ├── risk-scoring/
+│   ├── risk_score.py
+│   └── risk-model.md
 ├── scripts/
+│   ├── create-evidence-bucket.sh
+│   └── create-evidence-bucket-with-cmk.sh
 ├── .gitignore
 └── README.md
 ```
@@ -133,6 +161,31 @@ The risk scoring module generates:
 risk-scoring/output/risk-summary.json
 ```
 
+## How to Create a Secure Evidence Bucket
+
+This project includes a script to create a hardened S3 bucket for storing generated GRC evidence.
+
+Default AES256 encryption:
+
+```bash
+./scripts/create-evidence-bucket-with-cmk.sh my-evidence-bucket us-east-1 grc-engineer
+```
+
+SSE-KMS with a customer-managed KMS key:
+
+```bash
+./scripts/create-evidence-bucket-with-cmk.sh my-evidence-bucket us-east-1 grc-engineer arn:aws:kms:us-east-1:123456789012:key/example-key-id
+```
+
+Strict encryption enforcement mode:
+
+```bash
+./scripts/create-evidence-bucket-with-cmk.sh my-evidence-bucket us-east-1 grc-engineer arn:aws:kms:us-east-1:123456789012:key/example-key-id strict
+```
+
+The script applies public access blocking, object ownership enforcement, versioning, encryption, TLS-only bucket policy guardrails, and project tags.
+
+
 ## Sample Assessment Result
 
 Example control posture from the assessment environment:
@@ -189,8 +242,6 @@ For that reason:
 - Jira or ServiceNow ticket generation
 - IAM Access Analyzer evidence checks
 - KMS key governance checks
-
-## Author
 
 ## Author
 
