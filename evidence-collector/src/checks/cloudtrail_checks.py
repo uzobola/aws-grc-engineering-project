@@ -108,3 +108,84 @@ def check_cloudtrail_enabled(session) -> dict:
                 "Verify CloudTrail permissions and retry the control check."
             )
         }
+
+
+def check_cloudtrail_log_file_validation_enabled(session) -> dict:
+    """
+    LOG-002: Checks whether at least one CloudTrail trail has log file validation enabled.
+
+    Evidence source:
+    cloudtrail.describe_trails()
+    """
+    cloudtrail = session.client("cloudtrail")
+
+    control_id = "LOG-002"
+    control_name = "CloudTrail Log File Validation Enabled"
+
+    try:
+        trails_response = cloudtrail.describe_trails(includeShadowTrails=True)
+        trails = trails_response.get("trailList", [])
+
+        evaluated_trails = []
+        validation_enabled_trails = []
+
+        for trail in trails:
+            trail_name = trail.get("Name")
+            trail_arn = trail.get("TrailARN")
+            log_file_validation_enabled = trail.get(
+                "LogFileValidationEnabled",
+                False
+            )
+
+            trail_result = {
+                "trail_name": trail_name,
+                "trail_arn": trail_arn,
+                "log_file_validation_enabled": log_file_validation_enabled,
+                "is_multi_region": trail.get("IsMultiRegionTrail", False)
+            }
+
+            evaluated_trails.append(trail_result)
+
+            if log_file_validation_enabled:
+                validation_enabled_trails.append(trail_name)
+
+        status = "PASS" if len(validation_enabled_trails) > 0 else "FAIL"
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Logging and Monitoring",
+            "aws_service": "CloudTrail",
+            "status": status,
+            "risk_rating": "High",
+            "evidence_source": "cloudtrail.describe_trails",
+            "evidence": {
+                "total_trails_evaluated": len(evaluated_trails),
+                "validation_enabled_trail_count": len(validation_enabled_trails),
+                "validation_enabled_trails": validation_enabled_trails,
+                "evaluated_trails": evaluated_trails
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Enable CloudTrail log file validation to help prove log integrity "
+                "and detect whether CloudTrail log files were modified, deleted, "
+                "or tampered with after delivery."
+            )
+        }
+
+    except ClientError as error:
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Logging and Monitoring",
+            "aws_service": "CloudTrail",
+            "status": "ERROR",
+            "risk_rating": "High",
+            "evidence_source": "cloudtrail.describe_trails",
+            "evidence": {},
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify CloudTrail permissions and retry the control check."
+            )
+        }
