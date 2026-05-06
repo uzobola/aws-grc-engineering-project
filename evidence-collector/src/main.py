@@ -1,7 +1,6 @@
 from pathlib import Path
 import yaml
 
-
 from checks.iam_checks import (
     check_root_mfa_enabled,
     check_no_active_root_access_keys,
@@ -49,16 +48,16 @@ def main() -> None:
     )
 
     results = [
-    check_root_mfa_enabled(session),
-    check_no_active_root_access_keys(session),
-    check_iam_users_have_mfa(session),
-    check_s3_public_access_block_enabled(session),
-    check_s3_default_encryption_enabled(session),
-    check_cloudtrail_enabled(session),
-    check_cloudtrail_log_file_validation_enabled(session),
-    check_guardduty_enabled(session),
-    check_securityhub_enabled(session)
-]
+        check_root_mfa_enabled(session),
+        check_no_active_root_access_keys(session),
+        check_iam_users_have_mfa(session),
+        check_s3_public_access_block_enabled(session),
+        check_s3_default_encryption_enabled(session),
+        check_cloudtrail_enabled(session),
+        check_cloudtrail_log_file_validation_enabled(session),
+        check_guardduty_enabled(session),
+        check_securityhub_enabled(session)
+    ]
 
     write_json(results, json_output_path)
     write_csv(results, csv_output_path)
