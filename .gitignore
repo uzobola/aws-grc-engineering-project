@@ -27,3 +27,6 @@ evidence-collector/**/output/
 # Local scratch/practice files
 local-scratch/
 scripts/iam_users_report*.txt
+
+# Generated risk reports
+risk-scoring/output/
