@@ -34,3 +34,41 @@ The compliance score is calculated as:
 
 ```text 
 passed_controls / total_controls_evaluated * 100
+```
+
+## Prioritization Logic
+
+Failed controls are sorted by risk weight:
+
+```text
+Critical > High > Medium > Low > Informational
+```
+
+This helps identify which failed controls should be remediated first.
+
+## Example
+
+If 9 controls are evaluated and 6 pass:
+
+```text
+6 / 9 * 100 = 66.67%
+```
+
+The output gives the control owner a quick view of posture and remediation priority.
+
+## GRC Engineering Value
+
+This model demonstrates how cloud security evidence can be converted into risk-based reporting for:
+
+- Security teams
+- GRC teams
+- Control owners
+- Auditors
+- Leadership stakeholders
+
+Instead of only asking, “Did the control pass?”, the report helps answer:
+
+- What failed?
+- How serious is it?
+- What should be fixed first?
+- What evidence supports the finding?

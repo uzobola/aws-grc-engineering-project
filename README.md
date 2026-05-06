@@ -11,7 +11,7 @@ The goal is to show how AWS security telemetry can be transformed into continuou
 
 Traditional compliance evidence collection often relies on screenshots, manual reviews, spreadsheets, and point-in-time audits. This approach does not scale well in dynamic cloud environments where resources and configurations can change quickly.
 
-This project demonstrates how AWS security controls can be validated through APIs, converted into structured evidence, mapped to compliance frameworks, scored by risk, and reported in audit-ready formats.
+This project shows how AWS security controls can be validated through APIs, converted into structured evidence, mapped to compliance frameworks, scored by risk, and reported in audit-ready formats.
 
 The result is a repeatable GRC Engineering workflow that supports continuous assurance instead of manual audit preparation.
 
