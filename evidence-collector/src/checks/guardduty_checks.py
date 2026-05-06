@@ -63,6 +63,30 @@ def check_guardduty_enabled(session) -> dict:
         }
 
     except ClientError as error:
+        error_code = error.response.get("Error", {}).get("Code")
+        error_message = error.response.get("Error", {}).get("Message")
+
+        if error_code == "SubscriptionRequiredException":
+            return {
+                "control_id": control_id,
+                "control_name": control_name,
+                "control_domain": "Threat Detection",
+                "aws_service": "GuardDuty",
+                "status": "FAIL",
+                "risk_rating": "High",
+                "evidence_source": "guardduty.list_detectors + guardduty.get_detector",
+                "evidence": {
+                    "guardduty_enabled": False,
+                    "error_code": error_code,
+                    "error_message": error_message
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "remediation": (
+                    "Enable Amazon GuardDuty in the AWS account and configured region "
+                    "to support threat detection and continuous monitoring."
+                )
+            }
+
         return {
             "control_id": control_id,
             "control_name": control_name,
@@ -75,6 +99,6 @@ def check_guardduty_enabled(session) -> dict:
             "error": str(error),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "remediation": (
-                "Verify GuardDuty permissions and retry the control check."
+                "Verify GuardDuty permissions, AWS region support, and retry the control check."
             )
         }

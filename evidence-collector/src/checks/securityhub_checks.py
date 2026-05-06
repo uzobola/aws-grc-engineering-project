@@ -47,7 +47,8 @@ def check_securityhub_enabled(session) -> dict:
 
         if error_code in [
             "InvalidAccessException",
-            "ResourceNotFoundException"
+            "ResourceNotFoundException",
+            "SubscriptionRequiredException"
         ]:
             return {
                 "control_id": control_id,
@@ -59,7 +60,8 @@ def check_securityhub_enabled(session) -> dict:
                 "evidence_source": "securityhub.describe_hub",
                 "evidence": {
                     "security_hub_enabled": False,
-                    "error_code": error_code
+                    "error_code": error_code,
+                    "error_message": error.response.get("Error", {}).get("Message")
                 },
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "remediation": (
