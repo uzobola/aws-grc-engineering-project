@@ -3,6 +3,7 @@ IAM-001,Identity and Access Management,Root MFA Enabled,IAM,Ensure the AWS root 
 IAM-002,Identity and Access Management,No Active Root Access Keys,IAM,Ensure the AWS root user does not have active access keys,boto3 iam.get_account_summary,API response,Critical
 IAM-003,Identity and Access Management,IAM Users Have MFA,IAM,Ensure IAM users are protected with MFA,boto3 iam.list_users and iam.list_mfa_devices,API response,High
 IAM-004,Identity and Access Management,Stale IAM Users,IAM,Identify IAM users with no recent activity to support access review and leaver validation,boto3 iam.get_credential_report,Credential report,High
+IAM-005,Identity and Access Management,Unused Access Keys,IAM,Identify active IAM access keys that have not been used within the defined threshold,boto3 iam.list_users iam.list_access_keys and iam.get_access_key_last_used,API response,High
 LOG-001,Logging and Monitoring,CloudTrail Enabled,CloudTrail,Ensure account activity is logged for audit and investigation,boto3 cloudtrail.describe_trails,API response,Critical
 S3-001,Data Protection,S3 Public Access Block Enabled,S3,Ensure S3 buckets are not publicly exposed,boto3 s3control and s3 public access block checks,API response,Critical
 S3-002,Data Protection,S3 Default Encryption Enabled,S3,Ensure S3 buckets encrypt objects at rest,boto3 s3.get_bucket_encryption,API response,High
