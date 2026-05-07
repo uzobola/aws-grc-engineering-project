@@ -6,6 +6,27 @@
 
 An AWS GRC Engineering implementation for automated control validation, compliance evidence collection, risk-based remediation prioritization, and audit-ready reporting.
 
+
+## Architecture
+
+```text
+AWS APIs → Evidence Collector → Evidence Output → Risk Scoring → Reporting → Remediation
+```
+
+```mermaid
+flowchart LR
+    A[AWS Services<br/>IAM, S3, CloudTrail,<br/>GuardDuty, Security Hub] --> B[Python Evidence Collector<br/>boto3 API Checks]
+
+    B --> C[Control Results<br/>PASS / FAIL / ERROR]
+    C --> D[Evidence Writer<br/>JSON + CSV Output]
+
+    D --> E[Risk Scoring Module<br/>Severity Weighting + Compliance Score]
+    E --> F[Reports<br/>Executive Summary<br/>Audit Evidence Report]
+
+    C --> G[Remediation Playbooks<br/>Control-Specific Guidance]
+    F --> H[Secure Evidence Storage<br/>S3 Evidence Bucket<br/>Encryption + Versioning + TLS]
+```
+
 ## Overview
 
 This project demonstrates an engineering-driven approach to Governance, Risk, and Compliance in AWS. It focuses on continuous control monitoring, automated evidence collection, compliance framework mapping, risk scoring, and audit-ready reporting across common AWS security domains.
@@ -56,6 +77,17 @@ This project includes control mapping examples for:
 - SOC 2 Trust Services Criteria
 - ISO/IEC 27001
 - PCI DSS
+
+## Framework Coverage
+
+| Framework | Coverage Example |
+|---|---|
+| CIS AWS Foundations Benchmark | Root MFA, root access keys, CloudTrail, S3 encryption, logging controls |
+| NIST CSF | Identify, Protect, Detect control outcomes across IAM, logging, and monitoring |
+| NIST SP 800-53 | IA, AC, AU, SC, SI, and CA control families |
+| SOC 2 | CC6 and CC7 control areas for access control, monitoring, and security operations |
+| ISO/IEC 27001 | Access control, logging, cryptography, operations security, and monitoring alignment |
+| PCI DSS | MFA, logging, encryption, access control, and monitoring-related requirements |
 
 ## Project Status
 
@@ -131,6 +163,21 @@ aws-grc-engineering-project/
 | DET-001 | GuardDuty Enabled | Threat Detection | GuardDuty | Implemented |
 | SEC-001 | Security Hub Enabled | Security Posture Management | Security Hub | Implemented |
 
+## Business Impact by Control
+
+| Control ID | Control Name | Business Impact |
+|---|---|---|
+| IAM-001 | Root MFA Enabled | Reduces the risk of full account compromise through the AWS root user. |
+| IAM-002 | No Active Root Access Keys | Prevents long-lived root credentials from being abused or leaked. |
+| IAM-003 | IAM Users Have MFA | Reduces credential-based compromise risk for human users. |
+| S3-001 | S3 Public Access Block Enabled | Helps prevent accidental public exposure of sensitive data. |
+| S3-002 | S3 Default Encryption Enabled | Supports data protection requirements for encryption at rest. |
+| LOG-001 | CloudTrail Enabled | Provides audit visibility into AWS API activity and administrative actions. |
+| LOG-002 | CloudTrail Log File Validation Enabled | Helps prove log integrity and detect tampering with audit logs. |
+| DET-001 | GuardDuty Enabled | Improves detection of suspicious activity, compromised credentials, and malicious behavior. |
+| SEC-001 | Security Hub Enabled | Centralizes security posture visibility and compliance findings. |
+
+
 ## How to Run the Evidence Collector
 
 From the project root:
@@ -150,7 +197,54 @@ output/evidence-results.json
 output/evidence-results.csv
 ```
 
-Generated evidence output is excluded from Git because it may contain AWS account-specific data.
+Raw generated evidence output is excluded from Git because it may contain AWS account-specific data such as account IDs, IAM usernames, ARNs, bucket names, and service configuration details. The sample below shows the evidence structure using sanitized values.
+
+## Sample Evidence Output
+
+The evidence collector generates structured JSON evidence for each control. Sensitive values are either excluded from the public repository or replaced with sample values.
+
+```json
+{
+  "control_id": "IAM-003",
+  "control_name": "IAM Users Have MFA",
+  "control_domain": "Identity and Access Management",
+  "aws_service": "IAM",
+  "status": "FAIL",
+  "risk_rating": "High",
+  "evidence_source": "iam.list_users + iam.list_mfa_devices",
+  "evidence": {
+    "total_users_evaluated": 2,
+    "users_without_mfa_count": 1,
+    "users_without_mfa": ["sample-user"]
+  },
+  "remediation": "Enable MFA for all IAM users, especially users with console access or privileged permissions."
+}
+```
+
+The risk scoring module converts raw control evidence into a summary that can be used by security, GRC, and control owners:
+
+```json
+{
+  "total_controls_evaluated": 9,
+  "passed_controls": 6,
+  "failed_controls": 3,
+  "error_controls": 0,
+  "compliance_score_percent": 66.67,
+  "top_remediation_priorities": [
+    {
+      "control_id": "IAM-003",
+      "control_name": "IAM Users Have MFA",
+      "risk_rating": "High"
+    },
+    {
+      "control_id": "DET-001",
+      "control_name": "GuardDuty Enabled",
+      "risk_rating": "High"
+    }
+  ]
+}
+```
+
 
 ## How to Run Risk Scoring
 
@@ -238,16 +332,34 @@ For that reason:
 - Evidence should be encrypted at rest
 - Evidence access should be logged when required by audit scope
 
-## Future Enhancements
 
-- AWS Config integration
-- Security Hub findings ingestion
-- Multi-account support using AWS Organizations
-- Automated remediation with Lambda
-- HTML or dashboard reporting
-- Jira or ServiceNow ticket generation
-- IAM Access Analyzer evidence checks
-- KMS key governance checks
+## Phase 2 Roadmap: IAM Governance Module
+
+Planned IAM governance controls:
+
+- IAM-004: Stale IAM Users
+- IAM-005: Unused Access Keys
+- IAM-006: Privileged IAM Users
+- IAM-007: Cross-Account Role Trust Review
+- IAM-008: IAM Access Analyzer Findings
+- IAM-009: Quarterly Access Review Evidence
+- IAM-010: Leaver/Offboarding Validation
+
+This module will extend the project from AWS control validation into identity governance by adding access review, stale access detection, privilege review, and leaver validation workflows.
+
+## Roadmap
+
+The current implementation uses direct AWS API calls through boto3 to perform point-in-time control validation and evidence collection. Future phases expand the framework toward continuous assurance, multi-account governance, and automated remediation.
+
+- **AWS Config integration** — Add AWS Config managed and custom rules for continuous drift detection rather than point-in-time scans only.
+- **Security Hub findings ingestion** — Ingest Security Hub findings as an additional evidence source for centralized posture management.
+- **Multi-account support** — Extend evidence collection across AWS Organizations using delegated administration and cross-account role assumption.
+- **Automated remediation** — Add optional Lambda-based remediation workflows for selected failed controls.
+- **Dashboard reporting** — Generate HTML or dashboard-based reporting for leadership and control owners.
+- **Ticketing integration** — Send failed controls to Jira or ServiceNow for remediation ownership and tracking.
+- **IAM Access Analyzer checks** — Add evidence collection for public, cross-account, and external access findings.
+- **KMS governance checks** — Validate key rotation, key policies, and encryption control coverage.
+- **IAM Governance module** — Add stale user detection, unused access key checks, privileged user review, cross-account trust review, and quarterly access review evidence.
 
 ## Sample Screenshots
 
