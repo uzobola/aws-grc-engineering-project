@@ -313,3 +313,217 @@ def check_unused_access_keys(session, unused_days: int = 90) -> dict:
                 "and retrieving access key last-used metadata."
             )
         }
+
+def _policy_has_wildcard_admin_access(policy_document: dict) -> bool:
+    """
+    Detects broad wildcard administrative permissions in an IAM policy document.
+
+    This is a conservative check. It flags policies where:
+    - Effect is Allow
+    - Action is "*" or contains "*"
+    - Resource is "*" or contains "*"
+    """
+    statements = policy_document.get("Statement", [])
+
+    if isinstance(statements, dict):
+        statements = [statements]
+
+    for statement in statements:
+        if statement.get("Effect") != "Allow":
+            continue
+
+        actions = statement.get("Action", [])
+        resources = statement.get("Resource", [])
+
+        if isinstance(actions, str):
+            actions = [actions]
+
+        if isinstance(resources, str):
+            resources = [resources]
+
+        has_wildcard_action = "*" in actions
+        has_wildcard_resource = "*" in resources
+
+        if has_wildcard_action and has_wildcard_resource:
+            return True
+
+    return False
+
+
+def check_privileged_iam_users(session) -> dict:
+    """
+    IAM-006: Identifies IAM users with privileged access.
+
+    Evidence source:
+    iam.list_users()
+    iam.list_attached_user_policies()
+    iam.get_policy()
+    iam.get_policy_version()
+    iam.list_user_policies()
+    iam.get_user_policy()
+
+    A user is considered privileged if:
+    - AdministratorAccess is attached
+    - PowerUserAccess is attached
+    - IAMFullAccess is attached
+    - An attached or inline policy allows Action "*" on Resource "*"
+    """
+    iam = session.client("iam")
+
+    control_id = "IAM-006"
+    control_name = "Privileged IAM Users"
+
+    privileged_policy_names = {
+        "AdministratorAccess",
+        "PowerUserAccess",
+        "IAMFullAccess"
+    }
+
+    try:
+        evaluated_users = []
+        privileged_users = []
+
+        user_paginator = iam.get_paginator("list_users")
+
+        for user_page in user_paginator.paginate():
+            for user in user_page.get("Users", []):
+                username = user.get("UserName")
+                user_arn = user.get("Arn")
+
+                user_findings = []
+
+                attached_policy_paginator = iam.get_paginator(
+                    "list_attached_user_policies"
+                )
+
+                for policy_page in attached_policy_paginator.paginate(
+                    UserName=username
+                ):
+                    for attached_policy in policy_page.get("AttachedPolicies", []):
+                        policy_name = attached_policy.get("PolicyName")
+                        policy_arn = attached_policy.get("PolicyArn")
+
+                        if policy_name in privileged_policy_names:
+                            user_findings.append({
+                                "finding_type": "managed_policy",
+                                "policy_name": policy_name,
+                                "policy_arn": policy_arn,
+                                "reason": "Known privileged AWS managed policy attached directly to user"
+                            })
+
+                        policy_metadata = iam.get_policy(PolicyArn=policy_arn)
+                        default_version_id = policy_metadata["Policy"][
+                            "DefaultVersionId"
+                        ]
+
+                        policy_version = iam.get_policy_version(
+                            PolicyArn=policy_arn,
+                            VersionId=default_version_id
+                        )
+
+                        policy_document = policy_version["PolicyVersion"][
+                            "Document"
+                        ]
+
+                        if _policy_has_wildcard_admin_access(policy_document):
+                            user_findings.append({
+                                "finding_type": "managed_policy_wildcard",
+                                "policy_name": policy_name,
+                                "policy_arn": policy_arn,
+                                "reason": "Managed policy allows wildcard Action and wildcard Resource"
+                            })
+
+                inline_policy_paginator = iam.get_paginator("list_user_policies")
+
+                for inline_page in inline_policy_paginator.paginate(
+                    UserName=username
+                ):
+                    for inline_policy_name in inline_page.get("PolicyNames", []):
+                        inline_policy_response = iam.get_user_policy(
+                            UserName=username,
+                            PolicyName=inline_policy_name
+                        )
+
+                        inline_policy_document = inline_policy_response[
+                            "PolicyDocument"
+                        ]
+
+                        if _policy_has_wildcard_admin_access(
+                            inline_policy_document
+                        ):
+                            user_findings.append({
+                                "finding_type": "inline_policy_wildcard",
+                                "policy_name": inline_policy_name,
+                                "policy_arn": None,
+                                "reason": "Inline policy allows wildcard Action and wildcard Resource"
+                            })
+
+                is_privileged = len(user_findings) > 0
+
+                user_result = {
+                    "user_name": username,
+                    "user_arn": user_arn,
+                    "is_privileged": is_privileged,
+                    "findings": user_findings
+                }
+
+                evaluated_users.append(user_result)
+
+                if is_privileged:
+                    privileged_users.append({
+                        "user_name": username,
+                        "user_arn": user_arn,
+                        "finding_count": len(user_findings),
+                        "findings": user_findings
+                    })
+
+        status = "PASS" if len(privileged_users) == 0 else "FAIL"
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": status,
+            "risk_rating": "High",
+            "evidence_source": (
+                "iam.list_users + iam.list_attached_user_policies + "
+                "iam.get_policy_version + iam.list_user_policies + "
+                "iam.get_user_policy"
+            ),
+            "evidence": {
+                "total_users_evaluated": len(evaluated_users),
+                "privileged_user_count": len(privileged_users),
+                "privileged_users": privileged_users,
+                "evaluated_users": evaluated_users
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Review privileged IAM users with the appropriate control owner. "
+                "Remove direct administrative policies where possible, migrate "
+                "human access to federated roles, and apply least-privilege "
+                "permissions based on job function."
+            )
+        }
+
+    except ClientError as error:
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": "ERROR",
+            "risk_rating": "High",
+            "evidence_source": (
+                "iam.list_users + iam.list_attached_user_policies + "
+                "iam.get_policy_version + iam.list_user_policies + "
+                "iam.get_user_policy"
+            ),
+            "evidence": {},
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify IAM permissions for listing users and reading managed "
+                "and inline policy documents."
+            )
+        }

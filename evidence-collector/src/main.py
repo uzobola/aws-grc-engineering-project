@@ -8,7 +8,8 @@ from checks.iam_checks import (
 )
 from checks.iam_governance_checks import (
     check_stale_iam_users,
-    check_unused_access_keys
+    check_unused_access_keys,
+    check_privileged_iam_users
 )
 from checks.s3_checks import (
     check_s3_public_access_block_enabled,
@@ -57,6 +58,7 @@ def main() -> None:
         check_iam_users_have_mfa(session),
         check_stale_iam_users(session),
         check_unused_access_keys(session),
+        check_privileged_iam_users(session),
         check_s3_public_access_block_enabled(session),
         check_s3_default_encryption_enabled(session),
         check_cloudtrail_enabled(session),
