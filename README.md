@@ -349,17 +349,16 @@ This module will extend the project from AWS control validation into identity go
 
 ## Roadmap
 
-The current implementation uses direct AWS API calls through boto3 to perform point-in-time control validation and evidence collection. Future phases expand the framework toward continuous assurance, multi-account governance, and automated remediation.
+This implementation intentionally focuses on API-based point-in-time assessment, automated evidence collection, risk scoring, and audit-ready reporting. Planned extensions expand the framework toward continuous assurance, multi-account governance, and event-driven remediation.
 
 - **AWS Config integration** — Add AWS Config managed and custom rules for continuous drift detection rather than point-in-time scans only.
+- **Event-driven remediation** — Add optional Lambda-based remediation workflows triggered through EventBridge for selected failed controls.
+- **Multi-account governance** — Extend evidence collection across AWS Organizations using delegated administration and cross-account role assumption.
 - **Security Hub findings ingestion** — Ingest Security Hub findings as an additional evidence source for centralized posture management.
-- **Multi-account support** — Extend evidence collection across AWS Organizations using delegated administration and cross-account role assumption.
-- **Automated remediation** — Add optional Lambda-based remediation workflows for selected failed controls.
-- **Dashboard reporting** — Generate HTML or dashboard-based reporting for leadership and control owners.
+- **Dashboard reporting** — Generate HTML or dashboard-based reporting for leadership, auditors, and control owners.
 - **Ticketing integration** — Send failed controls to Jira or ServiceNow for remediation ownership and tracking.
-- **IAM Access Analyzer checks** — Add evidence collection for public, cross-account, and external access findings.
-- **KMS governance checks** — Validate key rotation, key policies, and encryption control coverage.
-- **IAM Governance module** — Add stale user detection, unused access key checks, privileged user review, cross-account trust review, and quarterly access review evidence.
+- **IAM Governance module** — Add stale user detection, unused access key checks, privileged user review, cross-account trust review, IAM Access Analyzer findings, quarterly access review evidence, and leaver/offboarding validation.
+- **KMS governance checks** — Validate key rotation, key policies, encryption coverage, and evidence storage key usage.
 
 ## Sample Screenshots
 
