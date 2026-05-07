@@ -8,6 +8,7 @@ IAM-006,Identity and Access Management,Privileged IAM Users,IAM,Identify IAM use
 IAM-007,Identity and Access Management,Cross-Account Role Trust Review,IAM,Identify IAM roles that trust external AWS accounts or principals,boto3 iam.list_roles and trust policy analysis,Trust policy document,High
 IAM-008,Identity and Access Management,IAM Access Analyzer Findings,IAM Access Analyzer,Identify active IAM Access Analyzer findings for external or public access,boto3 accessanalyzer.list_analyzers and accessanalyzer.list_findings,Access Analyzer findings,High
 IAM-009,Identity and Access Management,Quarterly Access Review Evidence,IAM,Generate structured IAM access review evidence for control owner certification,boto3 iam.list_users iam.list_mfa_devices iam.list_access_keys and iam.list_attached_user_policies,Access review evidence,Medium
+IAM-010,Identity and Access Management,Leaver Offboarding Validation,IAM,Validate that terminated users do not retain active AWS IAM access,boto3 iam.list_users and leaver source file comparison,Leaver validation evidence,Critical
 LOG-001,Logging and Monitoring,CloudTrail Enabled,CloudTrail,Ensure account activity is logged for audit and investigation,boto3 cloudtrail.describe_trails,API response,Critical
 S3-001,Data Protection,S3 Public Access Block Enabled,S3,Ensure S3 buckets are not publicly exposed,boto3 s3control and s3 public access block checks,API response,Critical
 S3-002,Data Protection,S3 Default Encryption Enabled,S3,Ensure S3 buckets encrypt objects at rest,boto3 s3.get_bucket_encryption,API response,High

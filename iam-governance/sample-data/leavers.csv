@@ -1,0 +1,3 @@
+employee_id,employee_name,termination_date,expected_access_status,aws_iam_user
+EMP-001,Sample Former User,2026-04-01,Disabled,sample-user
+EMP-002,Sample Contractor,2026-04-15,Disabled,sample-contractor

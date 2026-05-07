@@ -1,8 +1,10 @@
 import csv
 import io
 import time
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from botocore.exceptions import ClientError
+
 
 
 def _parse_credential_report_datetime(value: str):
@@ -1021,5 +1023,160 @@ def check_quarterly_access_review_evidence(session) -> dict:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "remediation": (
                 "Verify IAM permissions required to generate access review evidence."
+            )
+        }
+
+def check_leaver_offboarding_validation(
+    session,
+    leaver_file_path: str = "../iam-governance/sample-data/leavers.csv"
+) -> dict:
+    """
+    IAM-010: Validates that terminated users do not retain active IAM access.
+
+    Evidence source:
+    iam.list_users()
+    iam.get_login_profile()
+    leaver source CSV
+
+    The leaver file represents a source of truth for terminated users.
+    This control compares expected disabled users against active IAM users.
+    """
+    iam = session.client("iam")
+
+    control_id = "IAM-010"
+    control_name = "Leaver Offboarding Validation"
+
+    try:
+        leaver_path = Path(leaver_file_path)
+
+        if not leaver_path.exists():
+            return {
+                "control_id": control_id,
+                "control_name": control_name,
+                "control_domain": "Identity and Access Management",
+                "aws_service": "IAM",
+                "status": "ERROR",
+                "risk_rating": "Critical",
+                "evidence_source": "leaver source file + iam.list_users",
+                "evidence": {
+                    "leaver_file_path": str(leaver_path),
+                    "file_found": False
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "remediation": (
+                    "Provide a valid leaver source file for offboarding validation."
+                )
+            }
+
+        with leaver_path.open("r", encoding="utf-8") as file:
+            leaver_records = list(csv.DictReader(file))
+
+        expected_disabled_users = {
+            record.get("aws_iam_user")
+            for record in leaver_records
+            if record.get("expected_access_status", "").lower() == "disabled"
+            and record.get("aws_iam_user")
+        }
+
+        active_iam_users = {}
+        user_paginator = iam.get_paginator("list_users")
+
+        for user_page in user_paginator.paginate():
+            for user in user_page.get("Users", []):
+                username = user.get("UserName")
+
+                console_access_enabled = False
+
+                try:
+                    iam.get_login_profile(UserName=username)
+                    console_access_enabled = True
+                except ClientError as profile_error:
+                    error_code = profile_error.response.get("Error", {}).get("Code")
+
+                    if error_code != "NoSuchEntity":
+                        raise
+
+                active_iam_users[username] = {
+                    "user_name": username,
+                    "user_arn": user.get("Arn"),
+                    "created_date": (
+                        user.get("CreateDate").isoformat()
+                        if user.get("CreateDate") else None
+                    ),
+                    "console_access_enabled": console_access_enabled
+                }
+
+        offboarding_gaps = []
+
+        for record in leaver_records:
+            aws_iam_user = record.get("aws_iam_user")
+            expected_status = record.get("expected_access_status")
+
+            if not aws_iam_user:
+                continue
+
+            iam_user_exists = aws_iam_user in active_iam_users
+
+            validation_result = "PASS"
+
+            if (
+                expected_status
+                and expected_status.lower() == "disabled"
+                and iam_user_exists
+            ):
+                validation_result = "FAIL"
+
+                offboarding_gaps.append({
+                    "employee_id": record.get("employee_id"),
+                    "employee_name": record.get("employee_name"),
+                    "termination_date": record.get("termination_date"),
+                    "aws_iam_user": aws_iam_user,
+                    "expected_access_status": expected_status,
+                    "actual_access_status": "Active",
+                    "console_access_enabled": active_iam_users[
+                        aws_iam_user
+                    ].get("console_access_enabled")
+                })
+
+        status = "PASS" if len(offboarding_gaps) == 0 else "FAIL"
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": status,
+            "risk_rating": "Critical",
+            "evidence_source": "leaver source file + iam.list_users + iam.get_login_profile",
+            "evidence": {
+                "leaver_file_path": str(leaver_path),
+                "total_leaver_records": len(leaver_records),
+                "expected_disabled_user_count": len(expected_disabled_users),
+                "active_iam_user_count": len(active_iam_users),
+                "offboarding_gap_count": len(offboarding_gaps),
+                "offboarding_gaps": offboarding_gaps
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Disable or delete IAM users associated with terminated employees. "
+                "Validate offboarding with HR, IAM, and control owners. Document "
+                "approved exceptions for break-glass or retained access scenarios."
+            )
+        }
+
+    except ClientError as error:
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": "ERROR",
+            "risk_rating": "Critical",
+            "evidence_source": "leaver source file + iam.list_users + iam.get_login_profile",
+            "evidence": {},
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify IAM permissions for listing users and checking login profiles."
             )
         }
