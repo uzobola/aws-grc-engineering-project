@@ -527,3 +527,165 @@ def check_privileged_iam_users(session) -> dict:
                 "and inline policy documents."
             )
         }
+
+def _extract_aws_principals_from_trust_policy(trust_policy: dict) -> list[str]:
+    """
+    Extracts AWS principals from an IAM role trust policy.
+
+    Trust policies may include:
+    - Principal as a string
+    - Principal as a dictionary
+    - AWS principal as a string
+    - AWS principal as a list
+    """
+    principals = []
+    statements = trust_policy.get("Statement", [])
+
+    if isinstance(statements, dict):
+        statements = [statements]
+
+    for statement in statements:
+        principal = statement.get("Principal", {})
+
+        if isinstance(principal, str):
+            principals.append(principal)
+            continue
+
+        aws_principal = principal.get("AWS") if isinstance(principal, dict) else None
+
+        if isinstance(aws_principal, str):
+            principals.append(aws_principal)
+        elif isinstance(aws_principal, list):
+            principals.extend(aws_principal)
+
+    return principals
+
+
+def _principal_is_external_account(principal: str, current_account_id: str) -> bool:
+    """
+    Determines whether an AWS principal belongs to an external AWS account.
+
+    Examples:
+    - arn:aws:iam::123456789012:root
+    - arn:aws:iam::123456789012:role/SomeRole
+    - 123456789012
+    """
+    if not principal:
+        return False
+
+    if principal == "*":
+        return True
+
+    if principal.isdigit() and len(principal) == 12:
+        return principal != current_account_id
+
+    account_marker = "arn:aws:iam::"
+
+    if principal.startswith(account_marker):
+        account_id = principal.split(":")[4]
+        return account_id != current_account_id
+
+    return False
+
+
+def check_cross_account_role_trust(session) -> dict:
+    """
+    IAM-007: Identifies IAM roles with trust relationships to external AWS accounts.
+
+    Evidence source:
+    iam.list_roles()
+    Role AssumeRolePolicyDocument
+
+    A role is flagged when its trust policy allows an AWS principal from
+    outside the current AWS account.
+    """
+    iam = session.client("iam")
+    sts = session.client("sts")
+
+    control_id = "IAM-007"
+    control_name = "Cross-Account Role Trust Review"
+
+    try:
+        current_account_id = sts.get_caller_identity().get("Account")
+
+        evaluated_roles = []
+        cross_account_roles = []
+
+        role_paginator = iam.get_paginator("list_roles")
+
+        for role_page in role_paginator.paginate():
+            for role in role_page.get("Roles", []):
+                role_name = role.get("RoleName")
+                role_arn = role.get("Arn")
+                trust_policy = role.get("AssumeRolePolicyDocument", {})
+
+                aws_principals = _extract_aws_principals_from_trust_policy(
+                    trust_policy
+                )
+
+                external_principals = [
+                    principal for principal in aws_principals
+                    if _principal_is_external_account(
+                        principal,
+                        current_account_id
+                    )
+                ]
+
+                is_cross_account = len(external_principals) > 0
+
+                role_result = {
+                    "role_name": role_name,
+                    "role_arn": role_arn,
+                    "trusted_aws_principals": aws_principals,
+                    "external_principals": external_principals,
+                    "is_cross_account": is_cross_account
+                }
+
+                evaluated_roles.append(role_result)
+
+                if is_cross_account:
+                    cross_account_roles.append(role_result)
+
+        status = "PASS" if len(cross_account_roles) == 0 else "FAIL"
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": status,
+            "risk_rating": "High",
+            "evidence_source": "iam.list_roles + role trust policy analysis",
+            "evidence": {
+                "current_account_id": current_account_id,
+                "total_roles_evaluated": len(evaluated_roles),
+                "cross_account_role_count": len(cross_account_roles),
+                "cross_account_roles": cross_account_roles,
+                "evaluated_roles": evaluated_roles
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Review cross-account role trust relationships with the "
+                "appropriate control owner. Remove unapproved external "
+                "principals, require ExternalId where appropriate, and document "
+                "approved third-party or multi-account access exceptions."
+            )
+        }
+
+    except ClientError as error:
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": "ERROR",
+            "risk_rating": "High",
+            "evidence_source": "iam.list_roles + role trust policy analysis",
+            "evidence": {},
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify IAM and STS permissions for listing roles and retrieving "
+                "caller identity."
+            )
+        }  
