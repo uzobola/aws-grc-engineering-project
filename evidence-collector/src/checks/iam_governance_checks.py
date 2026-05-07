@@ -859,3 +859,167 @@ def check_iam_access_analyzer_findings(session) -> dict:
                 "Verify IAM Access Analyzer permissions and retry the control check."
             )
         }
+
+def check_quarterly_access_review_evidence(session) -> dict:
+    """
+    IAM-009: Generates structured IAM access review evidence.
+
+    Evidence source:
+    iam.list_users()
+    iam.list_mfa_devices()
+    iam.list_access_keys()
+    iam.list_attached_user_policies()
+    iam.list_user_policies()
+
+    This control does not fail simply because users exist. It passes when
+    access review evidence can be generated successfully.
+
+    The output supports quarterly access certification by providing reviewers
+    with IAM user, MFA, access key, and policy assignment context.
+    """
+    iam = session.client("iam")
+
+    control_id = "IAM-009"
+    control_name = "Quarterly Access Review Evidence"
+
+    try:
+        access_review_records = []
+
+        user_paginator = iam.get_paginator("list_users")
+
+        for user_page in user_paginator.paginate():
+            for user in user_page.get("Users", []):
+                username = user.get("UserName")
+                user_arn = user.get("Arn")
+                created_date = user.get("CreateDate")
+
+                mfa_response = iam.list_mfa_devices(UserName=username)
+                mfa_devices = mfa_response.get("MFADevices", [])
+
+                access_keys = []
+                key_paginator = iam.get_paginator("list_access_keys")
+
+                for key_page in key_paginator.paginate(UserName=username):
+                    for access_key in key_page.get("AccessKeyMetadata", []):
+                        access_key_id = access_key.get("AccessKeyId")
+
+                        last_used_response = iam.get_access_key_last_used(
+                            AccessKeyId=access_key_id
+                        )
+
+                        last_used = last_used_response.get(
+                            "AccessKeyLastUsed",
+                            {}
+                        )
+
+                        access_keys.append({
+                            "access_key_id_masked": (
+                                f"{access_key_id[:4]}...{access_key_id[-4:]}"
+                                if access_key_id else None
+                            ),
+                            "status": access_key.get("Status"),
+                            "created_date": (
+                                access_key.get("CreateDate").isoformat()
+                                if access_key.get("CreateDate") else None
+                            ),
+                            "last_used_date": (
+                                last_used.get("LastUsedDate").isoformat()
+                                if last_used.get("LastUsedDate") else None
+                            ),
+                            "last_used_service": last_used.get("ServiceName"),
+                            "last_used_region": last_used.get("Region")
+                        })
+
+                attached_policies = []
+                attached_policy_paginator = iam.get_paginator(
+                    "list_attached_user_policies"
+                )
+
+                for policy_page in attached_policy_paginator.paginate(
+                    UserName=username
+                ):
+                    for policy in policy_page.get("AttachedPolicies", []):
+                        attached_policies.append({
+                            "policy_name": policy.get("PolicyName"),
+                            "policy_arn": policy.get("PolicyArn")
+                        })
+
+                inline_policies = []
+                inline_policy_paginator = iam.get_paginator(
+                    "list_user_policies"
+                )
+
+                for inline_page in inline_policy_paginator.paginate(
+                    UserName=username
+                ):
+                    for policy_name in inline_page.get("PolicyNames", []):
+                        inline_policies.append(policy_name)
+
+                review_record = {
+                    "principal_name": username,
+                    "principal_type": "IAM User",
+                    "principal_arn": user_arn,
+                    "created_date": (
+                        created_date.isoformat()
+                        if created_date else None
+                    ),
+                    "mfa_enabled": len(mfa_devices) > 0,
+                    "mfa_device_count": len(mfa_devices),
+                    "access_key_count": len(access_keys),
+                    "access_keys": access_keys,
+                    "attached_policy_count": len(attached_policies),
+                    "attached_policies": attached_policies,
+                    "inline_policy_count": len(inline_policies),
+                    "inline_policies": inline_policies,
+                    "review_decision": "Pending",
+                    "reviewer": "TBD",
+                    "review_notes": ""
+                }
+
+                access_review_records.append(review_record)
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": "PASS",
+            "risk_rating": "Medium",
+            "evidence_source": (
+                "iam.list_users + iam.list_mfa_devices + "
+                "iam.list_access_keys + iam.get_access_key_last_used + "
+                "iam.list_attached_user_policies + iam.list_user_policies"
+            ),
+            "evidence": {
+                "review_frequency": "Quarterly",
+                "total_principals_reviewed": len(access_review_records),
+                "access_review_records": access_review_records
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Provide generated access review evidence to control owners. "
+                "Reviewers should certify, revoke, or document exceptions for "
+                "each principal based on business need and least privilege."
+            )
+        }
+
+    except ClientError as error:
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM",
+            "status": "ERROR",
+            "risk_rating": "Medium",
+            "evidence_source": (
+                "iam.list_users + iam.list_mfa_devices + "
+                "iam.list_access_keys + iam.get_access_key_last_used + "
+                "iam.list_attached_user_policies + iam.list_user_policies"
+            ),
+            "evidence": {},
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify IAM permissions required to generate access review evidence."
+            )
+        }
