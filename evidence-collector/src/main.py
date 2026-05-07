@@ -10,7 +10,8 @@ from checks.iam_governance_checks import (
     check_stale_iam_users,
     check_unused_access_keys,
     check_privileged_iam_users,
-    check_cross_account_role_trust
+    check_cross_account_role_trust,
+    check_iam_access_analyzer_findings
 )
 from checks.s3_checks import (
     check_s3_public_access_block_enabled,
@@ -61,6 +62,7 @@ def main() -> None:
         check_unused_access_keys(session),
         check_privileged_iam_users(session),
         check_cross_account_role_trust(session),
+        check_iam_access_analyzer_findings(session),
         check_s3_public_access_block_enabled(session),
         check_s3_default_encryption_enabled(session),
         check_cloudtrail_enabled(session),

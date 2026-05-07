@@ -689,3 +689,173 @@ def check_cross_account_role_trust(session) -> dict:
                 "caller identity."
             )
         }  
+
+
+def check_iam_access_analyzer_findings(session) -> dict:
+    """
+    IAM-008: Identifies active IAM Access Analyzer findings.
+
+    Evidence source:
+    accessanalyzer.list_analyzers()
+    accessanalyzer.list_findings()
+
+    A finding represents external or public access identified by IAM Access Analyzer.
+    This control fails when active findings are present.
+    """
+    access_analyzer = session.client("accessanalyzer")
+
+    control_id = "IAM-008"
+    control_name = "IAM Access Analyzer Findings"
+
+    try:
+        analyzers_response = access_analyzer.list_analyzers()
+        analyzers = analyzers_response.get("analyzers", [])
+
+        if len(analyzers) == 0:
+            return {
+                "control_id": control_id,
+                "control_name": control_name,
+                "control_domain": "Identity and Access Management",
+                "aws_service": "IAM Access Analyzer",
+                "status": "FAIL",
+                "risk_rating": "High",
+                "evidence_source": "accessanalyzer.list_analyzers",
+                "evidence": {
+                    "access_analyzer_configured": False,
+                    "total_analyzers_evaluated": 0,
+                    "active_finding_count": 0
+                    },
+                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                   "remediation": (
+                       "Create an IAM Access Analyzer analyzer to continuously "
+                    "identify external and public access findings."
+                    )
+                }
+
+        evaluated_analyzers = []
+        active_findings = []
+
+        for analyzer in analyzers:
+            analyzer_name = analyzer.get("name")
+            analyzer_arn = analyzer.get("arn")
+            analyzer_type = analyzer.get("type")
+            analyzer_status = analyzer.get("status")
+
+            analyzer_result = {
+                "analyzer_name": analyzer_name,
+                "analyzer_arn": analyzer_arn,
+                "analyzer_type": analyzer_type,
+                "analyzer_status": analyzer_status,
+                "active_findings": []
+            }
+
+            findings_paginator = access_analyzer.get_paginator("list_findings")
+
+            for findings_page in findings_paginator.paginate(
+                analyzerArn=analyzer_arn,
+                filter={
+                    "status": {
+                        "eq": ["ACTIVE"]
+                    }
+                }
+            ):
+                for finding in findings_page.get("findings", []):
+                    finding_result = {
+                        "finding_id": finding.get("id"),
+                        "resource": finding.get("resource"),
+                        "resource_type": finding.get("resourceType"),
+                        "principal": finding.get("principal"),
+                        "condition": finding.get("condition"),
+                        "action": finding.get("action"),
+                        "status": finding.get("status"),
+                        "created_at": (
+                            finding.get("createdAt").isoformat()
+                            if finding.get("createdAt") else None
+                        ),
+                        "updated_at": (
+                            finding.get("updatedAt").isoformat()
+                            if finding.get("updatedAt") else None
+                        )
+                    }
+
+                    analyzer_result["active_findings"].append(finding_result)
+                    active_findings.append(finding_result)
+
+            evaluated_analyzers.append(analyzer_result)
+
+        status = "PASS" if len(active_findings) == 0 else "FAIL"
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM Access Analyzer",
+            "status": status,
+            "risk_rating": "High",
+            "evidence_source": (
+                "accessanalyzer.list_analyzers + accessanalyzer.list_findings"
+            ),
+            "evidence": {
+                "total_analyzers_evaluated": len(evaluated_analyzers),
+                "active_finding_count": len(active_findings),
+                "active_findings": active_findings,
+                "evaluated_analyzers": evaluated_analyzers
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Review active IAM Access Analyzer findings. Remove unintended "
+                "public or external access, document approved external access, "
+                "and archive findings only after validation."
+            )
+        }
+
+    except ClientError as error:
+        error_code = error.response.get("Error", {}).get("Code")
+        error_message = error.response.get("Error", {}).get("Message")
+
+        if error_code in [
+            "AccessDeniedException",
+            "ResourceNotFoundException",
+            "ValidationException"
+        ]:
+            return {
+                "control_id": control_id,
+                "control_name": control_name,
+                "control_domain": "Identity and Access Management",
+                "aws_service": "IAM Access Analyzer",
+                "status": "FAIL",
+                "risk_rating": "High",
+                "evidence_source": (
+                    "accessanalyzer.list_analyzers + accessanalyzer.list_findings"
+                ),
+                "evidence": {
+                    "access_analyzer_available": False,
+                    "error_code": error_code,
+                    "error_message": error_message
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "remediation": (
+                    "Enable IAM Access Analyzer and ensure the collector role "
+                    "has permissions to list analyzers and findings."
+                )
+            }
+
+        return {
+            "control_id": control_id,
+            "control_name": control_name,
+            "control_domain": "Identity and Access Management",
+            "aws_service": "IAM Access Analyzer",
+            "status": "ERROR",
+            "risk_rating": "High",
+            "evidence_source": (
+                "accessanalyzer.list_analyzers + accessanalyzer.list_findings"
+            ),
+            "evidence": {},
+            "error_code": error_code,
+            "error_message": error_message,
+            "error": str(error),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "remediation": (
+                "Verify IAM Access Analyzer permissions and retry the control check."
+            )
+        }
