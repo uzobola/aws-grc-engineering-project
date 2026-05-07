@@ -1,0 +1,2 @@
+employee_id,employee_name,termination_date,expected_access_status,aws_iam_user,actual_access_status,validation_result,notes
+EMP-001,Sample User,2026-04-01,Disabled,sample-user,Active,Fail,IAM user still active after termination date

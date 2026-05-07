@@ -1,0 +1,2 @@
+review_id,review_period,principal_name,principal_type,last_activity_date,risk_rating,review_decision,reviewer,review_date,remediation_required,notes
+AR-001,2026-Q2,sample-user,IAM User,2026-01-01,High,Pending,,,Yes,User inactive beyond review threshold
