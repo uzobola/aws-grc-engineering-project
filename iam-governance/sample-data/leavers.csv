@@ -1,3 +1,4 @@
-employee_id,employee_name,termination_date,expected_access_status,aws_iam_user
-EMP-001,Sample Former User,2026-04-01,Disabled,sample-user
-EMP-002,Sample Contractor,2026-04-15,Disabled,sample-contractor
+employee_id,employee_email,employee_name,termination_date,expected_access_status,aws_iam_user
+EMP-001,sample.user@example.com,Sample Former User,2026-04-01,Disabled,sample-user
+EMP-002,sample.contractor@example.com,Sample Contractor,2026-04-15,Disabled,
+EMP-003,former.admin@example.com,Former Admin User,2026-04-20,Disabled,former-admin

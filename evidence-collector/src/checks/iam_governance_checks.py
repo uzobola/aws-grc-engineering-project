@@ -1026,6 +1026,37 @@ def check_quarterly_access_review_evidence(session) -> dict:
             )
         }
 
+def _get_user_tags(iam, username: str) -> dict:
+    """
+    Retrieves IAM user tags and returns them as a dictionary.
+
+    Example:
+    {
+        "EmployeeId": "EMP-001",
+        "Email": "sample.user@example.com"
+    }
+    """
+    tags = {}
+
+    paginator = iam.get_paginator("list_user_tags")
+
+    for page in paginator.paginate(UserName=username):
+        for tag in page.get("Tags", []):
+            tags[tag.get("Key")] = tag.get("Value")
+
+    return tags
+
+
+def _normalize_value(value: str) -> str:
+    """
+    Normalizes string values for safer comparison.
+    """
+    if value is None:
+        return ""
+
+    return value.strip().lower()
+
+
 def check_leaver_offboarding_validation(
     session,
     leaver_file_path: str = "../iam-governance/sample-data/leavers.csv"
@@ -1036,10 +1067,15 @@ def check_leaver_offboarding_validation(
     Evidence source:
     iam.list_users()
     iam.get_login_profile()
+    iam.list_user_tags()
     leaver source CSV
 
-    The leaver file represents a source of truth for terminated users.
-    This control compares expected disabled users against active IAM users.
+    Matching logic:
+    1. aws_iam_user exact match to IAM UserName
+    2. employee_id match to IAM user tag EmployeeId
+    3. employee_email match to IAM user tag Email
+
+    This mirrors identity correlation patterns used in IAM/IGA systems.
     """
     iam = session.client("iam")
 
@@ -1057,7 +1093,9 @@ def check_leaver_offboarding_validation(
                 "aws_service": "IAM",
                 "status": "ERROR",
                 "risk_rating": "Critical",
-                "evidence_source": "leaver source file + iam.list_users",
+                "evidence_source": (
+                    "leaver source file + iam.list_users + iam.list_user_tags"
+                ),
                 "evidence": {
                     "leaver_file_path": str(leaver_path),
                     "file_found": False
@@ -1071,19 +1109,16 @@ def check_leaver_offboarding_validation(
         with leaver_path.open("r", encoding="utf-8") as file:
             leaver_records = list(csv.DictReader(file))
 
-        expected_disabled_users = {
-            record.get("aws_iam_user")
-            for record in leaver_records
-            if record.get("expected_access_status", "").lower() == "disabled"
-            and record.get("aws_iam_user")
-        }
+        iam_users_by_username = {}
+        iam_users_by_employee_id = {}
+        iam_users_by_email = {}
 
-        active_iam_users = {}
         user_paginator = iam.get_paginator("list_users")
 
         for user_page in user_paginator.paginate():
             for user in user_page.get("Users", []):
                 username = user.get("UserName")
+                user_tags = _get_user_tags(iam, username)
 
                 console_access_enabled = False
 
@@ -1096,47 +1131,90 @@ def check_leaver_offboarding_validation(
                     if error_code != "NoSuchEntity":
                         raise
 
-                active_iam_users[username] = {
+                user_record = {
                     "user_name": username,
                     "user_arn": user.get("Arn"),
                     "created_date": (
                         user.get("CreateDate").isoformat()
                         if user.get("CreateDate") else None
                     ),
-                    "console_access_enabled": console_access_enabled
+                    "console_access_enabled": console_access_enabled,
+                    "tags": user_tags
                 }
 
+                iam_users_by_username[_normalize_value(username)] = user_record
+
+                employee_id = _normalize_value(user_tags.get("EmployeeId"))
+                email = _normalize_value(user_tags.get("Email"))
+
+                if employee_id:
+                    iam_users_by_employee_id[employee_id] = user_record
+
+                if email:
+                    iam_users_by_email[email] = user_record
+
+        expected_disabled_records = [
+            record for record in leaver_records
+            if _normalize_value(record.get("expected_access_status")) == "disabled"
+        ]
+
+        validation_results = []
         offboarding_gaps = []
 
-        for record in leaver_records:
-            aws_iam_user = record.get("aws_iam_user")
-            expected_status = record.get("expected_access_status")
+        for record in expected_disabled_records:
+            employee_id = _normalize_value(record.get("employee_id"))
+            employee_email = _normalize_value(record.get("employee_email"))
+            aws_iam_user = _normalize_value(record.get("aws_iam_user"))
 
-            if not aws_iam_user:
-                continue
+            matched_user = None
+            correlation_method = "not_matched"
 
-            iam_user_exists = aws_iam_user in active_iam_users
+            if aws_iam_user and aws_iam_user in iam_users_by_username:
+                matched_user = iam_users_by_username[aws_iam_user]
+                correlation_method = "aws_iam_user"
 
-            validation_result = "PASS"
+            elif employee_id and employee_id in iam_users_by_employee_id:
+                matched_user = iam_users_by_employee_id[employee_id]
+                correlation_method = "employee_id_tag"
 
-            if (
-                expected_status
-                and expected_status.lower() == "disabled"
-                and iam_user_exists
-            ):
-                validation_result = "FAIL"
+            elif employee_email and employee_email in iam_users_by_email:
+                matched_user = iam_users_by_email[employee_email]
+                correlation_method = "email_tag"
 
-                offboarding_gaps.append({
-                    "employee_id": record.get("employee_id"),
-                    "employee_name": record.get("employee_name"),
-                    "termination_date": record.get("termination_date"),
-                    "aws_iam_user": aws_iam_user,
-                    "expected_access_status": expected_status,
-                    "actual_access_status": "Active",
-                    "console_access_enabled": active_iam_users[
-                        aws_iam_user
-                    ].get("console_access_enabled")
-                })
+            iam_user_exists = matched_user is not None
+
+            validation_result = {
+                "employee_id": record.get("employee_id"),
+                "employee_email": record.get("employee_email"),
+                "employee_name": record.get("employee_name"),
+                "termination_date": record.get("termination_date"),
+                "expected_access_status": record.get("expected_access_status"),
+                "source_aws_iam_user": record.get("aws_iam_user"),
+                "correlation_method": correlation_method,
+                "matched_iam_user": (
+                    matched_user.get("user_name")
+                    if matched_user else None
+                ),
+                "matched_iam_user_arn": (
+                    matched_user.get("user_arn")
+                    if matched_user else None
+                ),
+                "actual_access_status": (
+                    "Active" if iam_user_exists else "Not Found"
+                ),
+                "console_access_enabled": (
+                    matched_user.get("console_access_enabled")
+                    if matched_user else None
+                ),
+                "validation_result": (
+                    "FAIL" if iam_user_exists else "PASS"
+                )
+            }
+
+            validation_results.append(validation_result)
+
+            if iam_user_exists:
+                offboarding_gaps.append(validation_result)
 
         status = "PASS" if len(offboarding_gaps) == 0 else "FAIL"
 
@@ -1147,19 +1225,29 @@ def check_leaver_offboarding_validation(
             "aws_service": "IAM",
             "status": status,
             "risk_rating": "Critical",
-            "evidence_source": "leaver source file + iam.list_users + iam.get_login_profile",
+            "evidence_source": (
+                "leaver source file + iam.list_users + "
+                "iam.get_login_profile + iam.list_user_tags"
+            ),
             "evidence": {
                 "leaver_file_path": str(leaver_path),
                 "total_leaver_records": len(leaver_records),
-                "expected_disabled_user_count": len(expected_disabled_users),
-                "active_iam_user_count": len(active_iam_users),
+                "expected_disabled_record_count": len(expected_disabled_records),
+                "active_iam_user_count": len(iam_users_by_username),
+                "correlation_methods_supported": [
+                    "aws_iam_user",
+                    "employee_id_tag",
+                    "email_tag"
+                ],
                 "offboarding_gap_count": len(offboarding_gaps),
-                "offboarding_gaps": offboarding_gaps
+                "offboarding_gaps": offboarding_gaps,
+                "validation_results": validation_results
             },
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "remediation": (
                 "Disable or delete IAM users associated with terminated employees. "
-                "Validate offboarding with HR, IAM, and control owners. Document "
+                "Improve identity correlation by tagging IAM users with EmployeeId "
+                "and Email values from the authoritative HR source. Document "
                 "approved exceptions for break-glass or retained access scenarios."
             )
         }
@@ -1172,11 +1260,15 @@ def check_leaver_offboarding_validation(
             "aws_service": "IAM",
             "status": "ERROR",
             "risk_rating": "Critical",
-            "evidence_source": "leaver source file + iam.list_users + iam.get_login_profile",
+            "evidence_source": (
+                "leaver source file + iam.list_users + "
+                "iam.get_login_profile + iam.list_user_tags"
+            ),
             "evidence": {},
             "error": str(error),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "remediation": (
-                "Verify IAM permissions for listing users and checking login profiles."
+                "Verify IAM permissions for listing users, checking login profiles, "
+                "and reading IAM user tags."
             )
         }
