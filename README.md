@@ -152,6 +152,10 @@ aws-grc-engineering-project/
 ├── scripts/
 │   ├── create-evidence-bucket.sh
 │   └── create-evidence-bucket-with-cmk.sh
+├── terraform/
+│   ├── evidence-vault/
+│   └── primitives/
+│       └── compliant-s3/
 ├── .gitignore
 └── README.md
 ```
@@ -165,6 +169,8 @@ aws-grc-engineering-project/
 - Reporting: Markdown templates
 - Automation: Bash scripts
 - Version Control: Git and GitHub
+- Infrastructure as Code: Terraform
+- Evidence Retention: S3 Object Lock and S3 Versioning
 
 ## Implemented Controls
 
@@ -287,6 +293,25 @@ Strict encryption enforcement mode:
 ```
 
 The script applies public access blocking, object ownership enforcement, versioning, encryption, TLS-only bucket policy guardrails, and project tags.
+
+## Secure Evidence Publishing and Retention
+
+This project includes an evidence vault pattern for storing generated GRC evidence in a secured S3 bucket with Object Lock, versioning, encryption, and public access blocking.
+
+The evidence capture script bundles generated evidence files, creates a SHA-256 manifest, uploads the package to the vault, and prints a JSON receipt containing the S3 object key and VersionId.
+
+Example:
+
+```bash
+RUN_ID="manual-$(date -u +%Y%m%dT%H%M%SZ)"
+VAULT="$(terraform -chdir=terraform/evidence-vault output -raw vault_name)"
+
+bash scripts/capture-evidence.sh \
+  --workspace . \
+  --run-id "$RUN_ID" \
+  --vault "$VAULT" \
+  --profile grc-engineer
+  ```
 
 ## Sample Evidence Output
 
@@ -425,6 +450,9 @@ This project demonstrates:
 - Quarterly access review evidence generation
 - Leaver/offboarding validation
 - Identity correlation using IAM username, EmployeeId tag, and Email tag
+- Preventive compliance infrastructure using Terraform
+- Immutable evidence storage using S3 Object Lock
+- Evidence bundle hashing and S3 VersionId tracking
 
 ## Security and Evidence Handling
 

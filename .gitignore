@@ -31,3 +31,20 @@ scripts/create-evidence-bucket.sh
 
 # Generated risk reports
 risk-scoring/output/
+
+# Terraform
+.# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform/**/evidence/
+
+# Generated Terraform evidence
+terraform/**/evidence/
