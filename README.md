@@ -9,7 +9,7 @@ An AWS GRC Engineering implementation for automated control validation, complian
 ## Architecture
 
 ```text
-AWS APIs → Evidence Collector → Evidence Output → Risk Scoring → Reporting → Remediation
+AWS APIs → Evidence Collector → Evidence Output → Risk Scoring → Reporting → Remediation → Evidence Vault
 ```
 
 ```mermaid
@@ -23,7 +23,9 @@ flowchart LR
     E --> F[Reports<br/>Executive Summary<br/>Audit Evidence Report]
 
     C --> G[Remediation Playbooks<br/>Control-Specific Guidance]
-    F --> H[Secure Evidence Storage<br/>S3 Evidence Bucket<br/>Encryption + Versioning + TLS]
+    F --> H[Secure Evidence Vault<br/>S3 Object Lock<br/>Versioning + Encryption + Retention]
+
+    I[Terraform Compliance Primitives<br/>Compliant S3 + Evidence Vault] --> H
 ```
 
 ## Overview
@@ -171,6 +173,7 @@ aws-grc-engineering-project/
 - Version Control: Git and GitHub
 - Infrastructure as Code: Terraform
 - Evidence Retention: S3 Object Lock and S3 Versioning
+- Evidence Integrity: SHA-256 manifest and S3 VersionId tracking
 
 ## Implemented Controls
 
@@ -294,11 +297,18 @@ Strict encryption enforcement mode:
 
 The script applies public access blocking, object ownership enforcement, versioning, encryption, TLS-only bucket policy guardrails, and project tags.
 
-## Secure Evidence Publishing and Retention
 
-This project includes an evidence vault pattern for storing generated GRC evidence in a secured S3 bucket with Object Lock, versioning, encryption, and public access blocking.
+## Secure Evidence Vault and Publishing
 
-The evidence capture script bundles generated evidence files, creates a SHA-256 manifest, uploads the package to the vault, and prints a JSON receipt containing the S3 object key and VersionId.
+This project includes Terraform modules for preventive compliance infrastructure and secure evidence retention.
+
+The `terraform/primitives/compliant-s3/` module provisions a compliant S3 bucket pattern with encryption, versioning, public access blocking, access logging, and required compliance tags. This demonstrates preventive control design before resources are deployed.
+
+The `terraform/evidence-vault/` module provisions an S3 evidence vault with Object Lock, versioning, encryption, TLS-only access, public access blocking, and retention controls. Object Lock supports tamper-resistant evidence retention by preventing protected evidence objects from being deleted or modified during the retention window.
+
+The `scripts/capture-evidence.sh` script packages generated evidence outputs, risk summaries, Terraform files, commit metadata, and runtime version details into a bundled archive. It also creates a SHA-256 manifest, uploads the bundle to the evidence vault, and returns a JSON receipt containing the S3 key, VersionId, and capture timestamp.
+
+This closes the evidence lifecycle by moving from local evidence generation to controlled, versioned, retained, and auditor-reviewable evidence storage.
 
 Example:
 
@@ -306,12 +316,12 @@ Example:
 RUN_ID="manual-$(date -u +%Y%m%dT%H%M%SZ)"
 VAULT="$(terraform -chdir=terraform/evidence-vault output -raw vault_name)"
 
-bash scripts/capture-evidence.sh \
+scripts/capture-evidence.sh \
   --workspace . \
   --run-id "$RUN_ID" \
   --vault "$VAULT" \
   --profile grc-engineer
-  ```
+```
 
 ## Sample Evidence Output
 
@@ -453,6 +463,8 @@ This project demonstrates:
 - Preventive compliance infrastructure using Terraform
 - Immutable evidence storage using S3 Object Lock
 - Evidence bundle hashing and S3 VersionId tracking
+- Secure evidence publishing to S3
+- Evidence chain of custody for audit workflows
 
 ## Security and Evidence Handling
 
