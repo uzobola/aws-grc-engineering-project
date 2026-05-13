@@ -81,6 +81,8 @@ This project includes control mapping examples for:
 - ISO/IEC 27001
 - PCI DSS
 
+The framework is also designed to be extended to financial services requirements such as GLBA Safeguards Rule and FFIEC cybersecurity guidance through additional control mappings.
+
 ## Framework Coverage
 
 | Framework | Coverage Example |
@@ -91,6 +93,40 @@ This project includes control mapping examples for:
 | SOC 2 | CC6 and CC7 control areas for access control, monitoring, security operations, and access reviews |
 | ISO/IEC 27001 | Access control, logging, cryptography, operations security, identity governance, and monitoring alignment |
 | PCI DSS | MFA, logging, encryption, access control, credential hygiene, and monitoring-related requirements |
+
+## SOC 2 Type II Evidence Readiness
+
+This framework is designed to support continuous evidence collection for SOC 2 Type II audit readiness. Rather than treating compliance as a one-time checklist, the evidence collector can be run repeatedly to produce timestamped JSON and CSV evidence that demonstrates control operation over time.
+
+This supports audit workflows where control owners and auditors need to understand whether access, logging, monitoring, encryption, and security posture controls are operating consistently across an assessment period.
+
+---
+
+## IAM Access Review & Certification
+
+The IAM Governance module supports access review workflows by identifying stale IAM users, unused access keys, privileged IAM users, cross-account trust relationships, IAM Access Analyzer findings, and leaver/offboarding validation gaps.
+
+Outputs are designed to support quarterly access certification, least-privilege review, and auditor-ready evidence for controls such as SOC 2 CC6.2, SOC 2 CC6.3, NIST AC-2, NIST AC-6, NIST IA-4, and NIST PS-4.
+
+---
+
+## Shift-Left GRC
+
+This project supports both detective and preventive compliance workflows. Runtime checks validate the current AWS environment through boto3, while Terraform-based compliance primitives demonstrate how secure infrastructure patterns can be defined before deployment.
+
+The `terraform/primitives/compliant-s3/` module represents a shift-left GRC pattern by defining encryption, public access blocking, versioning, access logging, and required tags as infrastructure controls before resources are deployed.
+
+These Terraform patterns can be paired with tools such as Checkov or tfsec in a CI pipeline to identify misconfigurations before they reach AWS.
+
+---
+
+## Financial Services Extensibility
+
+The framework mapping model is designed to be extensible to financial services regulatory expectations such as the GLBA Safeguards Rule and FFIEC cybersecurity guidance.
+
+The current implementation maps controls to CIS AWS Foundations, NIST CSF, NIST SP 800-53, SOC 2, ISO/IEC 27001, and PCI DSS. The evidence structure can be extended to additional financial services mappings by adding framework references to the control catalog and evidence reports.
+
+---
 
 ## Project Status
 
@@ -110,6 +146,8 @@ This project now includes:
 - Remediation playbooks
 - Exception register template
 - Secure S3 evidence bucket automation script
+
+---
 
 ## Repository Structure
 
@@ -175,6 +213,8 @@ aws-grc-engineering-project/
 - Evidence Retention: S3 Object Lock and S3 Versioning
 - Evidence Integrity: SHA-256 manifest and S3 VersionId tracking
 
+---
+
 ## Implemented Controls
 
 | Control ID | Control Name | Domain | AWS Service | Status |
@@ -196,6 +236,8 @@ aws-grc-engineering-project/
 | DET-001 | GuardDuty Enabled | Threat Detection | GuardDuty | Implemented |
 | SEC-001 | Security Hub Enabled | Security Posture Management | Security Hub | Implemented |
 
+---
+
 ## IAM Governance Module
 
 Phase 2 extends the framework into IAM Governance and Least-Privilege Drift Detection.
@@ -214,6 +256,7 @@ Implemented IAM Governance controls include:
 
 The `iam-governance/` folder includes methodology documentation, access review templates, leaver validation templates, quarterly access review reporting templates, and sample leaver source data.
 
+---
 
 ## Business Impact by Control
 
