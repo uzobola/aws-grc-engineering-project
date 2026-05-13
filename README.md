@@ -96,35 +96,46 @@ The framework is also designed to be extended to financial services requirements
 
 ## SOC 2 Type II Evidence Readiness
 
-This framework is designed to support continuous evidence collection for SOC 2 Type II audit readiness. Rather than treating compliance as a one-time checklist, the evidence collector can be run repeatedly to produce timestamped JSON and CSV evidence that demonstrates control operation over time.
+This framework supports continuous evidence collection for SOC 2 Type II audit readiness.
 
-This supports audit workflows where control owners and auditors need to understand whether access, logging, monitoring, encryption, and security posture controls are operating consistently across an assessment period.
+- Produces timestamped JSON and CSV evidence
+- Supports repeated control validation across an assessment period
+- Helps show whether IAM, logging, monitoring, encryption, and posture controls operated consistently over time
+- Reduces reliance on manual screenshots and point-in-time audit preparation
 
 ---
 
 ## IAM Access Review & Certification
 
-The IAM Governance module supports access review workflows by identifying stale IAM users, unused access keys, privileged IAM users, cross-account trust relationships, IAM Access Analyzer findings, and leaver/offboarding validation gaps.
+The IAM Governance module supports periodic access review and certification workflows.
 
-Outputs are designed to support quarterly access certification, least-privilege review, and auditor-ready evidence for controls such as SOC 2 CC6.2, SOC 2 CC6.3, NIST AC-2, NIST AC-6, NIST IA-4, and NIST PS-4.
+- Identifies stale IAM users and unused access keys
+- Flags privileged IAM users and cross-account trust relationships
+- Incorporates IAM Access Analyzer findings
+- Supports leaver/offboarding validation
+- Produces auditor-ready evidence for SOC 2 CC6.2, SOC 2 CC6.3, NIST AC-2, NIST AC-6, NIST IA-4, and NIST PS-4
 
 ---
 
 ## Shift-Left GRC
 
-This project supports both detective and preventive compliance workflows. Runtime checks validate the current AWS environment through boto3, while Terraform-based compliance primitives demonstrate how secure infrastructure patterns can be defined before deployment.
+This project supports both detective and preventive compliance workflows.
 
-The `terraform/primitives/compliant-s3/` module represents a shift-left GRC pattern by defining encryption, public access blocking, versioning, access logging, and required tags as infrastructure controls before resources are deployed.
-
-These Terraform patterns can be paired with tools such as Checkov or tfsec in a CI pipeline to identify misconfigurations before they reach AWS.
+- Runtime checks validate the current AWS environment through Python and boto3
+- Terraform compliance primitives define secure infrastructure patterns before deployment
+- The `terraform/primitives/compliant-s3/` module includes encryption, public access blocking, versioning, access logging, and required tags
+- These Terraform patterns can be paired with Checkov or tfsec in CI to identify misconfigurations before they reach AWS
 
 ---
 
 ## Financial Services Extensibility
 
-The framework mapping model is designed to be extensible to financial services regulatory expectations such as the GLBA Safeguards Rule and FFIEC cybersecurity guidance.
+The framework mapping model is designed to support additional financial services control mappings.
 
-The current implementation maps controls to CIS AWS Foundations, NIST CSF, NIST SP 800-53, SOC 2, ISO/IEC 27001, and PCI DSS. The evidence structure can be extended to additional financial services mappings by adding framework references to the control catalog and evidence reports.
+- Current mappings include CIS AWS Foundations, NIST CSF, NIST SP 800-53, SOC 2, ISO/IEC 27001, and PCI DSS
+- The evidence structure can be extended to GLBA Safeguards Rule and FFIEC cybersecurity guidance
+- Additional mappings can be added through the control catalog and evidence reports
+- This makes the framework adaptable for banking, fintech, and other regulated cloud environments
 
 ---
 
